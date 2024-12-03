@@ -1,0 +1,33 @@
+# Logs
+*.log
+/logs/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.idea/
+/.vscode/
+*.iml
+
+# Java/Gradle specific files
+/.gradle/
+/target/
+/build/
+/out/
+*.jar
+*.war
+*.class
+
+# Docker files
+*.pid
+/dist/
+
+# Environment & Config files
+*.env
+application.properties
+application.yml
+
+# Node.js (Optional, if using frontend in the same repo)
+/node_modules/
