@@ -63,29 +63,28 @@ public class KafkaMessageHandler {
         sessionControlService.sessionDisconnected(signal.getUserId(), signal.getServerIp(), signal.getSessionId());
     }
 
-    // CHAT MESSAGE:
-    // {"senderId":2,"userIds":[5,4,3,2,1],"roomId":"1","message":"test"}
     @KafkaListener(topics = MESSAGE_TOPIC)
     public void chatMessageConsume(String message) {
         log.info("CHAT MESSAGE: {}", message);
 
         final KafkaChatMessage chatMessage = objectMapperUtil.readValue(message, KafkaChatMessage.class);
 
+        //만약 사용자가 방에 구독되어 있지 않다면, 메시지 전송을 거부
+        if(!sessionControlService.isUserSubscribedRoom(chatMessage.getSenderId(), chatMessage.getRoomId())){
+            log.error("Sender is not subscribed room: {}", chatMessage);
+            return;
+        }
+
         // serverIp 별로 요청할 UserSessionInfo 그룹핑
         final Map<String, Set<UserSessionInfo>> serverIpUserSessionInfosMap = sessionControlService.getUserSessionInfos(chatMessage.getUserIds(),chatMessage.getRoomId());
 
-        //브로드캐스트 요청
-        serverIpUserSessionInfosMap.forEach((serverIp, userSessionInfos) -> {
-            log.info("Server IP: {}", serverIp);
-            userSessionInfos.forEach(userSessionInfo -> log.info("\t\tUser Session Info: {}", userSessionInfo));
-        });
 
         serverIpUserSessionInfosMap.entrySet().parallelStream().forEach(entry -> {
             
             final String serverIp = entry.getKey();
             final Set<UserSessionInfo> userSessionInfos = entry.getValue();
 
-            broadcastRequestService.sendRequest(
+            broadcastRequestService.sendBroadcastRequest(
                 chatMessage.getSenderId(),
                 serverIp,
                 userSessionInfos,

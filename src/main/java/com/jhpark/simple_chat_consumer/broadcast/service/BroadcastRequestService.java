@@ -22,7 +22,7 @@ public class BroadcastRequestService {
     private static final String PORT = ":81";
     private static final String BROADCAST_REQUEST_PATH = "/broadcast"; 
 
-    public void sendRequest(
+    public void sendBroadcastRequest(
         final Long senderId,
         final String serverIp,
         final Set<UserSessionInfo> userSessionInfos,
@@ -32,21 +32,24 @@ public class BroadcastRequestService {
 
         final String serverUrl = HTTP_PREFIX + serverIp + PORT + BROADCAST_REQUEST_PATH;
 
+        final BroadCastMessage broadCastMessage = BroadCastMessage.builder()
+                .senderId(senderId)
+                .userSessionInfos(userSessionInfos)
+                .roomId(roomId)
+                .message(message)
+                .build();
+
         webClient.post().uri(serverUrl)
-                .bodyValue(BroadCastMessage.builder()
-                        .senderId(senderId)
-                        .userSessionInfos(userSessionInfos)
-                        .roomId(roomId)
-                        .message(message)
-                        .build())
+                .bodyValue(broadCastMessage)
                 .retrieve()
                 .bodyToMono(Void.class)
                 .onErrorResume(error -> {
-                    // 기본 동작 대체 또는 로그 기록
                     log.error("ERROR : {}", error);
                     return Mono.empty();
                 })
                 .subscribe();
+        
+        log.debug("SENT BROADCAST REQUEST: {}", broadCastMessage.toString());
 
     }
 

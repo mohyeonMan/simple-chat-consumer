@@ -3,6 +3,7 @@ package com.jhpark.simple_chat_consumer.session.service;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
 
@@ -64,9 +65,9 @@ public class SessionControlService {
         return userIds.stream()
             .flatMap(userId -> getUserSessionInfos(userId, roomId).entrySet().stream())
             .collect(Collectors.toMap(
-                Map.Entry::getKey, // 서버 IP
-                Map.Entry::getValue, // UserSessionInfo Set
-                (set1, set2) -> { // 중복 키 처리 (서버 IP가 동일한 경우)
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (set1, set2) -> {
                     set1.addAll(set2);
                     return set1;
                 }
@@ -74,27 +75,32 @@ public class SessionControlService {
     }
     
     public Map<String, Set<UserSessionInfo>> getUserSessionInfos(final Long userId, final String roomId) {
-        final String userKey = getUserKey(userId);
-    
-        return redisService.getHash(userKey).entrySet().stream()
-            .filter(entry -> roomId.equals(entry.getValue()))
-            .map(entry -> Map.entry(
-                extractServerIp(entry.getKey()),
-                createUserSessionInfo(userId, entry.getKey())
-            ))
-            .collect(Collectors.groupingBy(
-                Map.Entry::getKey,
-                Collectors.mapping(Map.Entry::getValue, Collectors.toSet())
-            ));
+
+        return filterEntriesByRoomId(userId, roomId)
+                .map(entry -> Map.entry(
+                        extractServerIp(entry.getKey()),
+                        UserSessionInfo.builder()
+                                .userId(userId)
+                                .sessionIds(Set.of(extractSessionId(entry.getValue())))
+                                .build()))
+                .collect(Collectors.groupingBy(
+                        Map.Entry::getKey,
+                        Collectors.mapping(Map.Entry::getValue, Collectors.toSet())));
     }
-    
-    private UserSessionInfo createUserSessionInfo(final Long userId,final String sessionKey) {
-        return UserSessionInfo.builder()
-            .userId(userId)
-            .sessionIds(Set.of(extractSessionId(sessionKey)))
-            .build();
+
+    public boolean isUserSubscribedRoom(
+        final Long userId, 
+        final String roomId
+    ) {
+        return filterEntriesByRoomId(userId, roomId)
+                .findAny().isPresent();
     }
-    
+
+    private Stream<Map.Entry<String, String>> filterEntriesByRoomId(final Long userId, String roomId) {
+        return redisService.getHash(getUserKey(userId)).entrySet().stream()
+                .filter(entry -> roomId.equals(entry.getValue()));
+    }
+
 
     private String extractSessionId(final String sessionKey) {
         return sessionKey.split(":")[1];
