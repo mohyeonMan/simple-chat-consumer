@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 public class KafkaChatMessage {
-    private Long senderId;
+    private KafkaUserMetadata senderMetadata;
     private Set<Long> userIds;
     private String message;
     private String roomId;

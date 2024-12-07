@@ -74,9 +74,14 @@ public class SessionControlService {
             ));
     }
     
+    /**
+        각 serverIp별로 퍼져있는 해당 사용자의 세션들에 대한 정보를 가져옴
+        
+    */
     public Map<String, Set<UserSessionInfo>> getUserSessionInfos(final Long userId, final String roomId) {
 
-        return filterEntriesByRoomId(userId, roomId)
+        return redisService.getHash(getUserKey(userId)).entrySet().stream()
+                .filter(entry -> roomId.equals(entry.getValue()))
                 .map(entry -> Map.entry(
                         extractServerIp(entry.getKey()),
                         UserSessionInfo.builder()
@@ -88,18 +93,21 @@ public class SessionControlService {
                         Collectors.mapping(Map.Entry::getValue, Collectors.toSet())));
     }
 
-    public boolean isUserSubscribedRoom(
-        final Long userId, 
+
+    public boolean isSessionSubscribedRoom(
+        final Long userId,
+        final String sessionId,
+        final String serverIp,
         final String roomId
-    ) {
-        return filterEntriesByRoomId(userId, roomId)
-                .findAny().isPresent();
+    ){
+
+        return roomId.equals(
+            redisService.getHash(getUserKey(userId)).get(getSessionKey(serverIp, sessionId))
+        );
+
     }
 
-    private Stream<Map.Entry<String, String>> filterEntriesByRoomId(final Long userId, String roomId) {
-        return redisService.getHash(getUserKey(userId)).entrySet().stream()
-                .filter(entry -> roomId.equals(entry.getValue()));
-    }
+
 
 
     private String extractSessionId(final String sessionKey) {

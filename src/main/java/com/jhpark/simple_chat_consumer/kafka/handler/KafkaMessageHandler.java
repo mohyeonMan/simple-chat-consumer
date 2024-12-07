@@ -11,6 +11,7 @@ import com.jhpark.simple_chat_consumer.common.util.ObjectMapperUtil;
 import com.jhpark.simple_chat_consumer.kafka.dto.KafkaChatMessage;
 import com.jhpark.simple_chat_consumer.kafka.dto.KafkaSessionOfflineSignal;
 import com.jhpark.simple_chat_consumer.kafka.dto.KafkaSessionOnlineSignal;
+import com.jhpark.simple_chat_consumer.kafka.dto.KafkaUserMetadata;
 import com.jhpark.simple_chat_consumer.session.dto.UserSessionInfo;
 import com.jhpark.simple_chat_consumer.session.service.SessionControlService;
 
@@ -68,9 +69,15 @@ public class KafkaMessageHandler {
         log.info("CHAT MESSAGE: {}", message);
 
         final KafkaChatMessage chatMessage = objectMapperUtil.readValue(message, KafkaChatMessage.class);
+        final KafkaUserMetadata senderMetadata = chatMessage.getSenderMetadata();
 
         //만약 사용자가 방에 구독되어 있지 않다면, 메시지 전송을 거부
-        if(!sessionControlService.isUserSubscribedRoom(chatMessage.getSenderId(), chatMessage.getRoomId())){
+        if(!sessionControlService.isSessionSubscribedRoom(
+            senderMetadata.getUserId(),
+            senderMetadata.getSessionId(),
+            senderMetadata.getServerIp(), 
+            chatMessage.getRoomId())){
+
             log.error("Sender is not subscribed room: {}", chatMessage);
             return;
         }
@@ -78,14 +85,13 @@ public class KafkaMessageHandler {
         // serverIp 별로 요청할 UserSessionInfo 그룹핑
         final Map<String, Set<UserSessionInfo>> serverIpUserSessionInfosMap = sessionControlService.getUserSessionInfos(chatMessage.getUserIds(),chatMessage.getRoomId());
 
-
         serverIpUserSessionInfosMap.entrySet().parallelStream().forEach(entry -> {
             
             final String serverIp = entry.getKey();
             final Set<UserSessionInfo> userSessionInfos = entry.getValue();
 
             broadcastRequestService.sendBroadcastRequest(
-                chatMessage.getSenderId(),
+                senderMetadata.getUserId(),
                 serverIp,
                 userSessionInfos,
                 chatMessage.getRoomId(),
