@@ -28,12 +28,12 @@ public class RedisService {
     }
 
     public Map<String, String> getHash(final String key) {
-    return redisTemplate.opsForHash().entries(key).entrySet().stream()
-            .collect(Collectors.toMap(
-                    entry -> entry.getKey().toString(),
-                    entry -> entry.getValue().toString()
-            ));
-}
+        return redisTemplate.opsForHash().entries(key).entrySet().stream()
+                .filter(entry -> entry.getValue() != null)
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().toString(),
+                        entry -> entry.getValue().toString()));
+    }
 
     public String get(final String key, final String hashKey) {
         return Optional.ofNullable(redisTemplate.opsForHash().get(key, hashKey))

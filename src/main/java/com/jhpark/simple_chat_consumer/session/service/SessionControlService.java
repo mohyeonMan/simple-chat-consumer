@@ -86,7 +86,7 @@ public class SessionControlService {
                         extractServerIp(entry.getKey()),
                         UserSessionInfo.builder()
                                 .userId(userId)
-                                .sessionIds(Set.of(extractSessionId(entry.getValue())))
+                                .sessionIds(Set.of(extractSessionId(entry.getKey())))
                                 .build()))
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey,
