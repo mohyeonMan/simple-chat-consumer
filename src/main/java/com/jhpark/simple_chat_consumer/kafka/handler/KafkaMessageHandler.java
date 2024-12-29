@@ -12,6 +12,7 @@ import com.jhpark.simple_chat_consumer.kafka.dto.KafkaChatMessage;
 import com.jhpark.simple_chat_consumer.kafka.dto.KafkaSessionOfflineSignal;
 import com.jhpark.simple_chat_consumer.kafka.dto.KafkaSessionOnlineSignal;
 import com.jhpark.simple_chat_consumer.kafka.dto.KafkaUserMetadata;
+import com.jhpark.simple_chat_consumer.message.service.MessageService;
 import com.jhpark.simple_chat_consumer.session.dto.UserSessionInfo;
 import com.jhpark.simple_chat_consumer.session.service.SessionControlService;
 
@@ -30,6 +31,7 @@ public class KafkaMessageHandler {
     private final ObjectMapperUtil objectMapperUtil;
     private final SessionControlService sessionControlService;
     private final BroadcastRequestService broadcastRequestService;
+    private final MessageService messageService;
 
     /**
      * Redis에 세션 정보 저장
@@ -65,7 +67,7 @@ public class KafkaMessageHandler {
     }
 
     @KafkaListener(topics = MESSAGE_TOPIC)
-    public void chatMessageConsume(String message) {
+    public void chatMessageConsume(final String message) {
         log.info("CHAT MESSAGE: {}", message);
 
         final KafkaChatMessage chatMessage = objectMapperUtil.readValue(message, KafkaChatMessage.class);
@@ -81,6 +83,10 @@ public class KafkaMessageHandler {
             log.error("Sender is not subscribed room: {}", chatMessage);
             return;
         }
+
+        messageService.saveMessageAsync(
+            chatMessage.getRoomId(), senderMetadata.getUserId(), chatMessage.getMessage());
+
 
         // serverIp 별로 요청할 UserSessionInfo 그룹핑
         final Map<String, Set<UserSessionInfo>> serverIpUserSessionInfosMap = sessionControlService.getUserSessionInfos(chatMessage.getUserIds(),chatMessage.getRoomId());

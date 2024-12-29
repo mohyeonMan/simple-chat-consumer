@@ -9,5 +9,5 @@ public class KafkaChatMessage {
     private KafkaUserMetadata senderMetadata;
     private Set<Long> userIds;
     private String message;
-    private String roomId;
+    private Long roomId;
 }

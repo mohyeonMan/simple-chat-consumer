@@ -26,7 +26,7 @@ public class BroadcastRequestService {
         final Long senderId,
         final String serverIp,
         final Set<UserSessionInfo> userSessionInfos,
-        final String roomId,
+        final Long roomId,
         final String message
     ) {
 

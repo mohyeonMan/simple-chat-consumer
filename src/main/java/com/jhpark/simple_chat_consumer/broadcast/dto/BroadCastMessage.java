@@ -13,7 +13,7 @@ public class BroadCastMessage {
 
     private Long senderId;
     private Set<UserSessionInfo> userSessionInfos;
-    private String roomId;
+    private Long roomId;
     private String message;
     
 }
